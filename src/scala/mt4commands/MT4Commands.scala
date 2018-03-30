@@ -6,7 +6,7 @@ import java.util.Scanner
 
 import confs.BrokerConfs
 import confs.BrokerConfs.BrokerConfig
-import models.Order
+import models.{Order, TickerData}
 import resp.RESP
 import specs.OrderSpec
 
@@ -17,18 +17,22 @@ case class MT4Commands(val brokerId: String) {
   var out: PrintWriter = null
   var in: Scanner = null
   var socket: Socket = null
+  var currentBroker: BrokerConfig = null
+
+  setupConnection
 
   private def setupConnection = {
 
     BrokerConfs.getByBrokerName(brokerId) match {
-      case Some(config: BrokerConfig) => {
-        socket = new Socket(config.host, config.port)
-        out = new PrintWriter(socket.getOutputStream())
-        in = new Scanner(socket.getInputStream())
+      case Some(brokerConfig: BrokerConfig) => {
+        currentBroker = brokerConfig
       }
       case None =>
         throw new IllegalArgumentException("Unknown broker")
     }
+    socket = new Socket(currentBroker.host, currentBroker.port)
+    out = new PrintWriter(socket.getOutputStream())
+    in = new Scanner(socket.getInputStream())
   }
 
   private def teardown = {
@@ -39,8 +43,6 @@ case class MT4Commands(val brokerId: String) {
 
   def getOrders = {
     var orders = Seq[Order]()
-
-    setupConnection
 
     out.write(RESP.from("orders"))
     out.flush
@@ -66,7 +68,6 @@ case class MT4Commands(val brokerId: String) {
   def balance = {
     var balance = 0.0
 
-    setupConnection
     out.write(RESP.from("balance"))
     out.flush
     if (in.hasNextLine) {
@@ -84,7 +85,6 @@ case class MT4Commands(val brokerId: String) {
 
     var deleted = false
 
-    setupConnection
     out.write(RESP.from(s"close $orderId"))
     out.flush
     if (in.hasNextLine) {
@@ -101,7 +101,6 @@ case class MT4Commands(val brokerId: String) {
 
   def placeOrder(order: OrderSpec) = {
     var placedOrderId = -1
-    setupConnection
 
     out.write(RESP.from(s"buy ${order.pair} ${order.amount}"))
     out.flush()
@@ -109,8 +108,35 @@ case class MT4Commands(val brokerId: String) {
       val lineAtHand = in.nextLine();
       if (!lineAtHand.startsWith("-")) placedOrderId = lineAtHand.substring(1, lineAtHand.length).toInt
     }
+
     teardown
 
     placedOrderId
   }
+
+  def getTickerData(tickers: Seq[String]) = {
+    var tickerData = Seq[TickerData]()
+
+    out.write(RESP.from("tickers " + tickers.mkString(" ")))
+    out.flush()
+
+    if (in.hasNextLine) {
+      var lineAtHand = in.nextLine
+      if (!lineAtHand.startsWith("-")) {
+        val nLines = lineAtHand.substring(1, lineAtHand.length).toInt
+
+        1 to nLines foreach (i => {
+          lineAtHand = in.nextLine()
+          tickerData :+= RESP.toTickerData(lineAtHand)
+          println(lineAtHand)
+        })
+      }
+    }
+
+    teardown
+
+    tickerData
+  }
+
+  def getTickerData: Seq[TickerData] =  getTickerData(currentBroker.tickers)
 }

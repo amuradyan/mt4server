@@ -5,13 +5,13 @@ package confs
   */
 object BrokerConfs extends Enumeration {
 
-  case class BrokerConfig(host: String, port: Int) extends super.Val
+  case class BrokerConfig(host: String, port: Int, tickers: Seq[String]) extends super.Val
 
-  val demo = BrokerConfig("localhost", 6666)
-  val ava = BrokerConfig("localhost", 6666)
-  val ictrade = BrokerConfig("localhost", 6666)
-  val fxopen = BrokerConfig("localhost", 6666)
-  val fxclub = BrokerConfig("localhost", 6666)
+  val demo = BrokerConfig("localhost", 6666, Seq("BTCUSD", "ETHUSD", "XRPUSD"))
+  val ava = BrokerConfig("localhost", 6666, Seq("BCHUSD","BTCEUR","BTCJPY","BTCUSD","BTGUSD"))
+  val ictrade = BrokerConfig("localhost", 6666, Seq("BCHUSD","BTCUSD","DSHUSD","ETHUSD","LTCUSD"))
+  val fxopen = BrokerConfig("localhost", 6666, Seq())
+  val fxclub = BrokerConfig("localhost", 6666, Seq("BTCUSD","BTCEUR","ETCUSD","LTCBTC","LTCUSD","NEOUSD","ETHUSD","DSHUSD","XRPUSD","BCHUSD","BTGUSD","XMRUSD","ZECUSD"))
 
   def getByBrokerName(brokerId: String) = values find { _.toString().equalsIgnoreCase(brokerId) }
 }

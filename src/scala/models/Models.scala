@@ -16,3 +16,10 @@ case class Order(id: Int,
                  taxes: Double,
                  swap: Double,
                  profit: Double)
+
+case class TickerData(name: String,
+                      time: Long,
+                      bid: Double,
+                      ask: Double,
+                      last: Double,
+                      volume: Double)

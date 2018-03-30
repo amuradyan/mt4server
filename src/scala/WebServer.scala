@@ -6,20 +6,14 @@ import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.unmarshalling.{FromStringUnmarshaller, Unmarshaller}
 import akka.stream.ActorMaterializer
 import com.google.gson.Gson
-import models.Order
+import confs.BrokerConfs
+import confs.BrokerConfs.BrokerConfig
+import models.{Order, TickerData}
 import mt4commands.MT4Commands
 import specs.OrderSpec
 
 import scala.concurrent.Future
 import scala.io.StdIn
-
-/**
-  * TODO:
-  * 1. HTTPS support
-  * 2. Websocket for tickers
-  * 3. Tickers from MT4 (request and pub/sub)
-  * 4. Open/Close order
-  **/
 
 trait CsvParameters {
   implicit def csvSeqParamMarshaller: FromStringUnmarshaller[Seq[String]] =
@@ -46,65 +40,71 @@ object WebServer {
       pathSingleSlash {
         complete("It's alive!!!")
       } ~
-        pathPrefix("exchanges") {
-          pathPrefix(Segment) {
-            exchangeId => {
-              pathPrefix("orders") {
-                pathEnd {
-                  get {
-                    val ordersList = new util.ArrayList[Order]()
-                    MT4Commands(exchangeId).getOrders foreach ordersList.add
+      pathPrefix("exchanges") {
+        pathPrefix(Segment) {
+          exchangeId => {
+            pathPrefix("orders") {
+              pathEnd {
+                get {
+                  val ordersList = new util.ArrayList[Order]()
+                  MT4Commands(exchangeId).getOrders foreach ordersList.add
 
-                    complete(new Gson().toJson(ordersList))
-                  }
-                } ~
-                  post {
-                    entity(as[String]) {
-                      orderSpecJson => {
-                        val orderSpec = new Gson().fromJson(orderSpecJson, classOf[OrderSpec])
-                        complete(s"Order created for ${orderSpec.amount} of ${orderSpec.pair} in exchange $exchangeId")
-                      }
-                    }
-                  }
-              } ~
-                pathPrefix("balance") {
-                  pathEnd {
-                    get {
-                      complete(MT4Commands(exchangeId).balance.toString)
-                    }
-                  } ~
-                    path(IntNumber) {
-                      orderId => {
-                        pathEnd {
-                          delete {
-                            complete(MT4Commands(exchangeId).deleteOrder(orderId).toString)
-                          }
-                        }
-                      }
-                    }
-                } ~
-                pathPrefix("tickers") {
-                  path(Segment) {
-                    ticker => {
-                      get {
-                        complete(s"Replying with data of ticker $ticker")
-                      }
-                    }
-                  } ~
-                    get {
-                      parameters('name.as[List[String]].?) {
-                        tickers => {
-                          tickers match {
-                            case Some(tickers: List[String]) => complete(s"Fetching $tickers")
-                            case None => complete(s"Fetching all tickers")
-                          }
-                        }
-                      }
-                    }
+                  complete(new Gson().toJson(ordersList))
                 }
+              } ~
+                post {
+                  entity(as[String]) {
+                    orderSpecJson => {
+                      val orderSpec = new Gson().fromJson(orderSpecJson, classOf[OrderSpec])
+                      complete(s"Order created for ${orderSpec.amount} of ${orderSpec.pair} in exchange $exchangeId")
+                    }
+                  }
+                }
+            } ~
+            pathPrefix("balance") {
+              pathEnd {
+                get {
+                  complete(MT4Commands(exchangeId).balance.toString)
+                }
+              } ~
+                path(IntNumber) {
+                  orderId => {
+                    pathEnd {
+                      delete {
+                        complete(MT4Commands(exchangeId).deleteOrder(orderId).toString)
+                      }
+                    }
+                  }
+                }
+            } ~
+            pathPrefix("tickers") {
+              path(Segment) {
+                ticker => {
+                  get {
+                    complete(s"Replying with data of ticker $ticker")
+                  }
+                }
+              } ~
+              get {
+                parameters('name.as[List[String]].?) {
+                  tickers => {
+                    val tickerDataList = new util.ArrayList[TickerData]()
+                    tickers match {
+                      case Some(tickers: List[String]) => {
+                        MT4Commands(exchangeId).getTickerData(tickers) foreach tickerDataList.add
+                      }
+                      case None => {
+                        MT4Commands(exchangeId).getTickerData foreach tickerDataList.add
+                      }
+                    }
+                    complete(new Gson().toJson(tickerDataList))
+                  }
+                }
+              }
             }
           }
         }
+      }
     }
 
     val bindingFuture = Http().bindAndHandle(route, "localhost", 8080)

@@ -3,13 +3,15 @@ package resp
 import java.time.format.DateTimeFormatter
 import java.time.{LocalDateTime, ZoneOffset}
 
-import models.Order
+import models.{Order, TickerData}
 import specs.OrderSpec
 
 /**
   * Created by spectrum on 3/29/2018.
   */
 object RESP {
+  val dtf = DateTimeFormatter.ofPattern("yyyy.MM.dd HH:mm:ss")
+
   def from(input: AnyRef): String = {
     val sb = new StringBuilder()
 
@@ -47,8 +49,6 @@ object RESP {
   def toOrder(respOrder: String) = {
     val orderMembers = respOrder.split(" ")
 
-    val dtf = DateTimeFormatter.ofPattern("yyyy.MM.dd HH:mm:ss")
-
     val id = orderMembers(0).substring(2, orderMembers(0).length).toInt
     val date = LocalDateTime.parse(s"${orderMembers(1)} ${orderMembers(2)}", dtf).toEpochSecond(ZoneOffset.UTC)
     val orderType = orderMembers(3)
@@ -64,5 +64,19 @@ object RESP {
     val profit = orderMembers(13).toDouble
 
     Order(id, date, orderType, size, symbol, price, sl, tp, currentPrice, commission, taxes, swap, profit)
+  }
+
+  //  #BTCUSD 2018.03.30 11:16:31 7063.73 7143.73 0.00 0.000000
+  def toTickerData(respTickerdata: String) = {
+    val tickerDataMembers = respTickerdata.split(" ")
+
+    val tickerName = tickerDataMembers(0).substring(2, tickerDataMembers(0).length)
+    val date = LocalDateTime.parse(s"${tickerDataMembers(1)} ${tickerDataMembers(2)}", dtf).toEpochSecond(ZoneOffset.UTC)
+    val bidPrice = tickerDataMembers(3).toDouble
+    val askPrice = tickerDataMembers(4).toDouble
+    val lastPrice = tickerDataMembers(5).toDouble
+    val volume = tickerDataMembers(6).toDouble
+
+    TickerData(tickerName, date, bidPrice, askPrice, lastPrice, volume)
   }
 }
