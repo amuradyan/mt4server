@@ -1,13 +1,14 @@
+import java.io.InputStream
+import java.security.{KeyStore, SecureRandom}
 import java.util
+import javax.net.ssl.{KeyManagerFactory, SSLContext, TrustManagerFactory}
 
 import akka.actor.ActorSystem
-import akka.http.scaladsl.Http
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.unmarshalling.{FromStringUnmarshaller, Unmarshaller}
+import akka.http.scaladsl.{ConnectionContext, Http, HttpsConnectionContext}
 import akka.stream.ActorMaterializer
 import com.google.gson.Gson
-import confs.BrokerConfs
-import confs.BrokerConfs.BrokerConfig
 import models.{Order, TickerData}
 import mt4commands.MT4Commands
 import specs.OrderSpec
@@ -34,7 +35,23 @@ object WebServer {
     implicit val materializer = ActorMaterializer()
     implicit val executionCtx = actorSystem.dispatcher
 
-    import CsvParameters._
+    val password = "a72zkPP".toCharArray
+
+    val ks: KeyStore = KeyStore.getInstance("PKCS12")
+    val keystore: InputStream = getClass.getResourceAsStream("/res/cert/cert.p12")
+
+    require(keystore != null, "Keystore required!")
+    ks.load(keystore, password)
+
+    val keyManagerFactory: KeyManagerFactory = KeyManagerFactory.getInstance("SunX509")
+    keyManagerFactory.init(ks, password)
+
+    val tmf: TrustManagerFactory = TrustManagerFactory.getInstance("SunX509")
+    tmf.init(ks)
+
+    val sslContext: SSLContext = SSLContext.getInstance("TLS")
+    sslContext.init(keyManagerFactory.getKeyManagers, tmf.getTrustManagers, new SecureRandom)
+    val https: HttpsConnectionContext = ConnectionContext.https(sslContext)
 
     val route = {
       pathSingleSlash {
@@ -86,7 +103,9 @@ object WebServer {
                 }
               } ~
               get {
-                parameters('name.as[List[String]].?) {
+                import CsvParameters._
+
+                parameters('tickers.as[List[String]].?) {
                   tickers => {
                     val tickerDataList = new util.ArrayList[TickerData]()
                     tickers match {
@@ -107,7 +126,8 @@ object WebServer {
       }
     }
 
-    val bindingFuture = Http().bindAndHandle(route, "localhost", 8080)
+    Http().setDefaultServerHttpContext(https)
+    val bindingFuture = Http().bindAndHandle(route, "localhost", 443, connectionContext = https)
 
     println(s"Server online at http://localhost:8080/\nPress RETURN to stop...")
     StdIn.readLine()
