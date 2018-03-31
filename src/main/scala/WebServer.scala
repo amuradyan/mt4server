@@ -18,10 +18,10 @@ import scala.io.StdIn
 
 trait CsvParameters {
   implicit def csvSeqParamMarshaller: FromStringUnmarshaller[Seq[String]] =
-    Unmarshaller(ex ⇒ s ⇒ Future.successful(s.split(",")))
+    Unmarshaller(ex => s => Future.successful(s.split(",")))
 
   implicit def csvListParamMarshaller: FromStringUnmarshaller[List[String]] =
-    Unmarshaller(ex ⇒ s ⇒ Future.successful(s.split(",").toList))
+    Unmarshaller(ex => s => Future.successful(s.split(",").toList))
 }
 
 object CsvParameters extends CsvParameters
@@ -31,14 +31,14 @@ object CsvParameters extends CsvParameters
   */
 object WebServer {
   def main(args: Array[String]) {
-    implicit val actorSystem = ActorSystem("musho")
+    implicit val actorSystem = ActorSystem("MT4Server")
     implicit val materializer = ActorMaterializer()
     implicit val executionCtx = actorSystem.dispatcher
 
     val password = "a72zkPP".toCharArray
 
     val ks: KeyStore = KeyStore.getInstance("PKCS12")
-    val keystore: InputStream = getClass.getResourceAsStream("/res/cert/cert.p12")
+    val keystore: InputStream = getClass.getResourceAsStream("/cert.p12")
 
     require(keystore != null, "Keystore required!")
     ks.load(keystore, password)

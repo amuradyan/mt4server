@@ -3,24 +3,6 @@ version '1.0'
 
 apply plugin: 'scala'
 
-sourceSets {
-    main {
-        scala {
-            srcDirs = ['src/scala']
-        }
-    }
-    test {
-        scala {
-            srcDirs = ['test/scala']
-        }
-    }
-    resources {
-        scala {
-            srcDir('res')
-        }
-    }
-}
-
 repositories {
     mavenCentral()
 }
