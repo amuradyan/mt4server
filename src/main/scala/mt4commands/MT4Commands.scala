@@ -138,5 +138,26 @@ case class MT4Commands(val brokerId: String) {
     tickerData
   }
 
+  def getSingleTickerData(ticker: String) = {
+    var tickerData = TickerData.empty
+
+    out.write(RESP.from("ticker " + ticker))
+    out.flush()
+
+    if (in.hasNextLine) {
+      val lineAtHand = in.nextLine
+      if (lineAtHand.startsWith("+")) {
+        tickerData = RESP.toTickerData(lineAtHand)
+        println(lineAtHand)
+      } else {
+        println(s"Invalid response: ${lineAtHand}")
+      }
+    }
+
+    teardown
+
+    tickerData
+  }
+
   def getTickerData: Seq[TickerData] =  getTickerData(currentBroker.tickers)
 }

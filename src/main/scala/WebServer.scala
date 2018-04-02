@@ -4,13 +4,16 @@ import java.util
 import javax.net.ssl.{KeyManagerFactory, SSLContext, TrustManagerFactory}
 
 import akka.actor.ActorSystem
+import akka.http.scaladsl.model.ws.TextMessage
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.unmarshalling.{FromStringUnmarshaller, Unmarshaller}
 import akka.http.scaladsl.{ConnectionContext, Http, HttpsConnectionContext}
 import akka.stream.ActorMaterializer
+import akka.stream.scaladsl.{Sink, Source}
 import com.google.gson.Gson
 import models.{Order, TickerData}
 import mt4commands.MT4Commands
+import sources.TickerSource
 import specs.OrderSpec
 
 import scala.concurrent.Future
@@ -121,19 +124,35 @@ object WebServer {
                 }
               }
             }
+            path("ticker") {
+              extractUpgradeToWebSocket {
+                upgrade => {
+                  parameters('ticker.as[String]) {
+                    ticker => {
+                      complete({
+                        val tickerGraph = new TickerSource(exchangeId, ticker)
+                        val tickers = Source.fromGraph(tickerGraph).map(e => {
+                          TextMessage(e.toString)
+                        })
+
+                        upgrade.handleMessagesWithSinkSource(Sink.ignore, tickers)
+                      })
+                    }
+                  }
+                }
+              }
+            }
           }
         }
       }
     }
 
-    Http().setDefaultServerHttpContext(https)
     val bindingFuture = Http().bindAndHandle(route, "localhost", 443, connectionContext = https)
 
-    println(s"Server online at http://localhost:8080/\nPress RETURN to stop...")
+    println(s"Server online at http://localhost:443/\nPress RETURN to stop...")
     StdIn.readLine()
     bindingFuture
       .flatMap(_.unbind())
       .onComplete(_ => actorSystem.terminate())
   }
-
 }
