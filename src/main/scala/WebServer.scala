@@ -70,6 +70,7 @@ object WebServer {
             entity(as[String])
             { apiKey =>
               {
+                println("Commencing login")
                 if (apiKey.equals(API_KEY)) {
                   val token = Jwt.encode(apiKey, secret_key, JwtAlgorithm.HS512)
                   complete(token)
@@ -91,6 +92,8 @@ object WebServer {
               pathPrefix("orders") {
                 pathEnd {
                   get {
+                    println(s"Commencing get orders for exchange ${exchangeId}")
+
                     val ordersList = new util.ArrayList[Order]()
                     MT4Commands(exchangeId).getOrders foreach ordersList.add
 
@@ -100,8 +103,21 @@ object WebServer {
                   post {
                     entity(as[String]) {
                       orderSpecJson => {
+                        println(s"Commencing cretae order ${orderSpecJson} for exchange ${exchangeId}")
+
                         val orderSpec = new Gson().fromJson(orderSpecJson, classOf[OrderSpec])
                         complete(s"Order created for ${orderSpec.amount} of ${orderSpec.pair} in exchange $exchangeId")
+                      }
+                    }
+                  } ~
+                  pathPrefix("order" / IntNumber) {
+                    orderId => {
+                      pathEnd {
+                        delete {
+                          println(s"Commencing delete order ${orderId} for exchange ${exchangeId}")
+
+                          complete(MT4Commands(exchangeId).deleteOrder(orderId).toString)
+                        }
                       }
                     }
                   }
@@ -109,51 +125,41 @@ object WebServer {
                 pathPrefix("balance") {
                   pathEnd {
                     get {
+                      println(s"Commencing get balance for exchange ${exchangeId}")
+
                       complete(MT4Commands(exchangeId).balance.toString)
                     }
-                  } ~
-                    path(IntNumber) {
-                      orderId => {
-                        pathEnd {
-                          delete {
-                            complete(MT4Commands(exchangeId).deleteOrder(orderId).toString)
-                          }
-                        }
-                      }
-                    }
+                  }
                 } ~
                 pathPrefix("tickers") {
-                  path(Segment) {
-                    ticker => {
-                      get {
-                        complete(s"Replying with data of ticker $ticker")
-                      }
-                    }
-                  } ~
-                    get {
-                      import CsvParameters._
+                  get {
+                    import CsvParameters._
 
-                      parameters('tickers.as[List[String]].?) {
-                        tickers => {
-                          val tickerDataList = new util.ArrayList[TickerData]()
-                          tickers match {
-                            case Some(tickers: List[String]) => {
-                              MT4Commands(exchangeId).getTickerData(tickers) foreach tickerDataList.add
-                            }
-                            case None => {
-                              MT4Commands(exchangeId).getTickerData foreach tickerDataList.add
-                            }
+                    parameters('tickers.as[List[String]].?) {
+                      tickers => {
+                        println(s"Commencing get tickers ${tickers} for exchange ${exchangeId}")
+
+                        val tickerDataList = new util.ArrayList[TickerData]()
+                        tickers match {
+                          case Some(tickers: List[String]) => {
+                            MT4Commands(exchangeId).getTickerData(tickers) foreach tickerDataList.add
                           }
-                          complete(new Gson().toJson(tickerDataList))
+                          case None => {
+                            MT4Commands(exchangeId).getTickerData foreach tickerDataList.add
+                          }
                         }
+                        complete(new Gson().toJson(tickerDataList))
                       }
                     }
+                  }
                 } ~
               path("ticker") {
                 extractUpgradeToWebSocket {
                   upgrade => {
                     parameters('ticker.as[String]) {
                       ticker => {
+                        println(s"Commencing get ticker ${ticker} via socket for exchange ${exchangeId}")
+
                         complete({
                           val tickerGraph = new TickerSource(exchangeId, ticker)
                           val tickers = Source.fromGraph(tickerGraph).map(e => {
@@ -173,9 +179,9 @@ object WebServer {
       }
     }
 
-    val bindingFuture = Http().bindAndHandle(route, "localhost", 443, connectionContext = https)
+    val bindingFuture = Http().bindAndHandle(route, "0.0.0.0", 443, connectionContext = https)
 
-    println(s"Server online at http://localhost:443/\nPress RETURN to stop...")
+    println(s"Server online at http://0.0.0.0:443/\nPress RETURN to stop...")
     StdIn.readLine()
     bindingFuture
       .flatMap(_.unbind())
