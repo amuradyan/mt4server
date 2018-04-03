@@ -103,14 +103,14 @@ object WebServer {
                   post {
                     entity(as[String]) {
                       orderSpecJson => {
-                        println(s"Commencing cretae order ${orderSpecJson} for exchange ${exchangeId}")
+                        println(s"Commencing create order ${orderSpecJson} for exchange ${exchangeId}")
 
                         val orderSpec = new Gson().fromJson(orderSpecJson, classOf[OrderSpec])
                         complete(s"Order created for ${orderSpec.amount} of ${orderSpec.pair} in exchange $exchangeId")
                       }
                     }
                   } ~
-                  pathPrefix("order" / IntNumber) {
+                  pathPrefix(IntNumber) {
                     orderId => {
                       pathEnd {
                         delete {
