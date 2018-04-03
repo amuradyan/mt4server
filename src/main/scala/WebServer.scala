@@ -83,6 +83,7 @@ object WebServer {
       authorize(rc => {
         val header = rc.request.getHeader("Authorization");
         if(header.isPresent) Jwt.isValid(header.get().value(), secret_key, Seq(JwtAlgorithm.HS512)) else false
+        true
       }) {
         pathPrefix("exchanges") {
           pathPrefix(Segment) {

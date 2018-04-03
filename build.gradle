@@ -1,8 +1,17 @@
 group 'richrick'
 version '1.0'
 
+buildscript {
+    repositories {
+        jcenter()
+    }
+    dependencies {
+        classpath 'com.github.jengelman.gradle.plugins:shadow:1.2.4'
+    }
+}
+
 apply plugin: 'scala'
-apply plugin: 'java'
+apply plugin: "com.github.johnrengelman.shadow"
 
 sourceSets {
     main {
@@ -12,6 +21,20 @@ sourceSets {
         resources {
             srcDir "src/main/resources"
         }
+    }
+}
+
+shadowJar {
+    baseName = 'mt4server'
+    version = 1.0
+    transform(com.github.jengelman.gradle.plugins.shadow.transformers.AppendingTransformer) {
+        resource = 'reference.conf'
+    }
+}
+
+jar {
+    manifest {
+        attributes 'Main-Class': 'WebServer'
     }
 }
 
