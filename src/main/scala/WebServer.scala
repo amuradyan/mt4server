@@ -40,7 +40,7 @@ object WebServer {
     implicit val materializer = ActorMaterializer()
     implicit val executionCtx = actorSystem.dispatcher
 
-    val password = "a72zkPP".toCharArray
+    val password = "".toCharArray
     val API_KEY = "280EC427-5184-4AB4-8A12-EF4140057437"
     val secret_key = "I shot the sheriff"
 
@@ -64,7 +64,7 @@ object WebServer {
       pathSingleSlash {
         complete("It's alive!!!")
       } ~
-      pathPrefix("login") {
+      pathPrefix("token") {
         pathEnd {
           post {
             entity(as[String])
@@ -84,7 +84,6 @@ object WebServer {
       authorize(rc => {
         val header = rc.request.getHeader("Authorization");
         if(header.isPresent) Jwt.isValid(header.get().value(), secret_key, Seq(JwtAlgorithm.HS512)) else false
-        true
       }) {
         pathPrefix("exchanges") {
           pathPrefix(Segment) {
@@ -106,7 +105,9 @@ object WebServer {
                         println(s"Commencing create order ${orderSpecJson} for exchange ${exchangeId}")
 
                         val orderSpec = new Gson().fromJson(orderSpecJson, classOf[OrderSpec])
-                        complete(s"Order created for ${orderSpec.amount} of ${orderSpec.pair} in exchange $exchangeId")
+                        complete({
+                          MT4Commands(exchangeId).placeOrder(orderSpec).toString
+                        })
                       }
                     }
                   } ~

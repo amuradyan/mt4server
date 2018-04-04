@@ -102,7 +102,7 @@ case class MT4Commands(val brokerId: String) {
   def placeOrder(order: OrderSpec) = {
     var placedOrderId = -1
 
-    out.write(RESP.from(s"buy ${order.pair} ${order.amount}"))
+    out.write(RESP.from(s"${order.op} ${order.pair} ${order.amount}"))
     out.flush()
     if (in.hasNextLine) {
       val lineAtHand = in.nextLine();
