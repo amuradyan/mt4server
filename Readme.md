@@ -23,7 +23,6 @@ In the cURLs below youll see placeholders like \<this\>. These are describes bel
 
 **Note**: demo is the name for a demo account with [Just2Trade](https://just2trade.com/) broker
 
-### **Tigran**
 #### Auth
 
 Use this to obtain the JWT token
