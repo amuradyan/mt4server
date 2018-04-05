@@ -29,12 +29,12 @@ trait CsvParameters {
     Unmarshaller(ex => s => Future.successful(s.split(",").toList))
 }
 
-object CsvParameters extends CsvParameters
+final object CsvParameters extends CsvParameters
 
 /**
   * Created by spectrum on 3/27/2018.
   */
-object WebServer {
+final object WebServer {
   def main(args: Array[String]) {
     implicit val actorSystem = ActorSystem("MT4Server")
     implicit val materializer = ActorMaterializer()
@@ -183,7 +183,9 @@ object WebServer {
     val bindingFuture = Http().bindAndHandle(route, "0.0.0.0", 443, connectionContext = https)
 
     println(s"Server online at http://0.0.0.0:443/\nPress RETURN to stop...")
-    StdIn.readLine()
+    StdIn.readLine
+
+    keystore.close
     bindingFuture
       .flatMap(_.unbind())
       .onComplete(_ => actorSystem.terminate())

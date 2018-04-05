@@ -13,11 +13,11 @@ import specs.OrderSpec
 /**
   * Created by spectrum on 3/29/2018.
   */
-case class MT4Commands(val brokerId: String) {
-  var out: PrintWriter = null
-  var in: Scanner = null
-  var socket: Socket = null
-  var currentBroker: BrokerConfig = null
+final case class MT4Commands(private val brokerId: String) {
+  private var out: PrintWriter = null
+  private var in: Scanner = null
+  private var socket: Socket = null
+  private var currentBroker: BrokerConfig = null
 
   setupConnection
 
