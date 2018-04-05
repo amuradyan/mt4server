@@ -12,6 +12,8 @@ import akka.http.scaladsl.{ConnectionContext, Http, HttpsConnectionContext}
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.{Sink, Source}
 import com.google.gson.Gson
+import com.typesafe.config.ConfigFactory
+import com.typesafe.scalalogging.Logger
 import models.{Order, TickerData}
 import mt4commands.MT4Commands
 import pdi.jwt.{Jwt, JwtAlgorithm}
@@ -34,30 +36,36 @@ final object CsvParameters extends CsvParameters
 /**
   * Created by spectrum on 3/27/2018.
   */
+class WebServer
 final object WebServer {
+  val logger = Logger[WebServer]
+
   def main(args: Array[String]) {
     implicit val actorSystem = ActorSystem("MT4Server")
     implicit val materializer = ActorMaterializer()
     implicit val executionCtx = actorSystem.dispatcher
 
-    val password = "".toCharArray
-    val API_KEY = "280EC427-5184-4AB4-8A12-EF4140057437"
-    val secret_key = "I shot the sheriff"
+    val conf = ConfigFactory.load()
+
+    val keystore_password = conf.getString("keystore_password").toCharArray
+    val API_KEY = conf.getString("api_key")
+    val secret_key = conf.getString("secret_key")
 
     val ks: KeyStore = KeyStore.getInstance("PKCS12")
-    val keystore: InputStream = getClass.getResourceAsStream("/cert.p12")
 
+    val keystore: InputStream = getClass.getResourceAsStream("/cert.p12")
     require(keystore != null, "Keystore required!")
-    ks.load(keystore, password)
+    ks.load(keystore, keystore_password)
 
     val keyManagerFactory: KeyManagerFactory = KeyManagerFactory.getInstance("SunX509")
-    keyManagerFactory.init(ks, password)
+    keyManagerFactory.init(ks, keystore_password)
 
     val tmf: TrustManagerFactory = TrustManagerFactory.getInstance("SunX509")
     tmf.init(ks)
 
     val sslContext: SSLContext = SSLContext.getInstance("TLS")
     sslContext.init(keyManagerFactory.getKeyManagers, tmf.getTrustManagers, new SecureRandom)
+
     val https: HttpsConnectionContext = ConnectionContext.https(sslContext)
 
     val route = {
@@ -182,7 +190,7 @@ final object WebServer {
 
     val bindingFuture = Http().bindAndHandle(route, "0.0.0.0", 443, connectionContext = https)
 
-    println(s"Server online at http://0.0.0.0:443/\nPress RETURN to stop...")
+    logger.info(s"Server online at http://0.0.0.0:443/\nPress RETURN to stop...")
     StdIn.readLine
 
     keystore.close
