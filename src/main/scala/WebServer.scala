@@ -78,7 +78,7 @@ final object WebServer {
             entity(as[String])
             { apiKey =>
               {
-                println("Commencing login")
+                logger.info("Commencing login")
                 if (apiKey.equals(API_KEY)) {
                   val token = Jwt.encode(apiKey, secret_key, JwtAlgorithm.HS512)
                   complete(token)
@@ -99,7 +99,7 @@ final object WebServer {
               pathPrefix("orders") {
                 pathEnd {
                   get {
-                    println(s"Commencing get orders for exchange ${exchangeId}")
+                    logger.info(s"Commencing get orders for exchange ${exchangeId}")
 
                     val ordersList = new util.ArrayList[Order]()
                     MT4Commands(exchangeId).getOrders foreach ordersList.add
@@ -110,7 +110,7 @@ final object WebServer {
                   post {
                     entity(as[String]) {
                       orderSpecJson => {
-                        println(s"Commencing create order ${orderSpecJson} for exchange ${exchangeId}")
+                        logger.info(s"Commencing create order ${orderSpecJson} for exchange ${exchangeId}")
 
                         val orderSpec = new Gson().fromJson(orderSpecJson, classOf[OrderSpec])
                         complete({
@@ -123,7 +123,7 @@ final object WebServer {
                     orderId => {
                       pathEnd {
                         delete {
-                          println(s"Commencing delete order ${orderId} for exchange ${exchangeId}")
+                          logger.info(s"Commencing delete order ${orderId} for exchange ${exchangeId}")
 
                           complete(MT4Commands(exchangeId).deleteOrder(orderId).toString)
                         }
@@ -134,7 +134,7 @@ final object WebServer {
                 pathPrefix("balance") {
                   pathEnd {
                     get {
-                      println(s"Commencing get balance for exchange ${exchangeId}")
+                      logger.info(s"Commencing get balance for exchange ${exchangeId}")
 
                       complete(MT4Commands(exchangeId).balance.toString)
                     }
@@ -146,7 +146,7 @@ final object WebServer {
 
                     parameters('tickers.as[List[String]].?) {
                       tickers => {
-                        println(s"Commencing get tickers ${tickers} for exchange ${exchangeId}")
+                        logger.info(s"Commencing get tickers ${tickers} for exchange ${exchangeId}")
 
                         val tickerDataList = new util.ArrayList[TickerData]()
                         tickers match {
@@ -167,7 +167,7 @@ final object WebServer {
                   upgrade => {
                     parameters('ticker.as[String]) {
                       ticker => {
-                        println(s"Commencing get ticker ${ticker} via socket for exchange ${exchangeId}")
+                        logger.info(s"Commencing get ticker ${ticker} via socket for exchange ${exchangeId}")
 
                         complete({
                           val tickerGraph = new TickerSource(exchangeId, ticker)

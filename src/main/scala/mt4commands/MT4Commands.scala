@@ -4,9 +4,11 @@ import java.io.PrintWriter
 import java.net.Socket
 import java.util.Scanner
 
+import com.typesafe.scalalogging.Logger
 import confs.BrokerConfs
 import confs.BrokerConfs.BrokerConfig
 import models.{Order, TickerData}
+import org.slf4j.LoggerFactory
 import resp.RESP
 import specs.OrderSpec
 
@@ -18,6 +20,7 @@ final case class MT4Commands(private val brokerId: String) {
   private var in: Scanner = null
   private var socket: Socket = null
   private var currentBroker: BrokerConfig = null
+  val logger = Logger[MT4Commands]
 
   setupConnection
 
@@ -51,7 +54,7 @@ final case class MT4Commands(private val brokerId: String) {
       println(s"First line: ${lineAtHand}")
       val nLines = lineAtHand.substring(1, lineAtHand.length).toInt
 
-      println(s"Expecting ${nLines}")
+      logger.info(s"Expecting ${nLines}")
 
       1 to nLines foreach (i => {
         lineAtHand = in.nextLine()
@@ -73,7 +76,7 @@ final case class MT4Commands(private val brokerId: String) {
     if (in.hasNextLine) {
       val lineAtHand = in.nextLine
       balance = RESP.toBalance(lineAtHand)
-      println(lineAtHand)
+      logger.info(lineAtHand)
     }
     teardown
 
@@ -95,7 +98,7 @@ final case class MT4Commands(private val brokerId: String) {
 
     val end = System.currentTimeMillis()
 
-    println(s"Request fullfilled in ${end - start}")
+    logger.info(s"Request fullfilled in ${end - start}")
     deleted
   }
 
@@ -128,7 +131,7 @@ final case class MT4Commands(private val brokerId: String) {
         1 to nLines foreach (i => {
           lineAtHand = in.nextLine()
           tickerData :+= RESP.toTickerData(lineAtHand)
-          println(lineAtHand)
+          logger.info(lineAtHand)
         })
       }
     }
@@ -148,9 +151,9 @@ final case class MT4Commands(private val brokerId: String) {
       val lineAtHand = in.nextLine
       if (lineAtHand.startsWith("+")) {
         tickerData = RESP.toTickerData(lineAtHand)
-        println(lineAtHand)
+        logger.info(lineAtHand)
       } else {
-        println(s"Invalid response: ${lineAtHand}")
+        logger.info(s"Invalid response: ${lineAtHand}")
       }
     }
 
