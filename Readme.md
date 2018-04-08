@@ -1,6 +1,6 @@
 # MT4Server API
 
-MT4Server is a REST API proxy between brokers who support MetaTrader4 platform. It provides such operations as listing of orders, buy and sell, balanse and ways to obtain ticker data via HTTP or web sockets(obtains a particular ticker from a broker).
+MT4Server is a REST API proxy between brokers who support MetaTrader4 platform. It provides such operations as listing of orders, buy and sell, balance and ways to obtain ticker data via HTTP or web sockets(obtains a particular ticker from a broker).
 
 It uses API key for authentication and JWT.
 
