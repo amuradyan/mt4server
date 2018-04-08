@@ -1,25 +1,61 @@
 package confs
 
+
+import java.util
+
+import com.typesafe.scalalogging.Logger
+
+import scala.util.control.Breaks._
+
 /**
   * Created by spectrum on 3/29/2018.
   */
-final object BrokerConfs extends Enumeration {
+final class BrokerConfig(var name: String, var host: String, var port: Int, var tickers: util.ArrayList[String]) {
+  def this() = this("", "", -1, new util.ArrayList())
+}
 
-  final case class BrokerConfig(host: String, port: Int, tickers: Seq[String]) extends super.Val
+final class BrokerConfs
+final object BrokerConfs {
+  val logger = Logger[BrokerConfs]
+  var confs: List[BrokerConfig] = List()
+  def initFrom(confsMap: util.ArrayList[util.HashMap[String, AnyRef]]): Unit = {
+    confsMap forEach {
+      conf => breakable {
+        val brokerConfig = new BrokerConfig()
+        conf.get("name") match {
+          case name: String => brokerConfig.name = name
+          case null => {
+            logger.error("Unable to find a 'name' key")
+            break
+          }
+        }
+        conf.get("host") match {
+          case host: String => brokerConfig.host = host
+          case null => {
+            logger.error("Unable to find a 'host' key")
+            break
+          }
+        }
+        conf.get("port") match {
+          case port: Integer => brokerConfig.port = port
+          case null => {
+            logger.error("Unable to find a 'port' key")
+            break
+          }
+        }
+        conf.get("tickers") match {
+          case tickers: util.ArrayList[String] => brokerConfig.tickers = tickers
+          case null => {
+            logger.error("Unable to find a 'tickers' key")
+            break
+          }
+        }
 
-  final val demo = BrokerConfig("localhost", 6000, Seq("BTCUSD", "ETHUSD", "XRPUSD"))
-
-  final val fxclub = BrokerConfig("localhost", 6001, Seq("BTCUSD", "BTCEUR", "ETCUSD", "LTCBTC", "LTCUSD", "NEOUSD", "ETHUSD",
-    "DSHUSD", "XRPUSD", "BCHUSD", "BTGUSD", "XMRUSD", "ZECUSD"))
-
-  final val ava = BrokerConfig("localhost", 6002, Seq("BCHUSD", "BTCEUR", "BTCJPY", "BTCUSD", "BTGUSD"))
-
-  final val fxopen = BrokerConfig("localhost", 6003, Seq("EURUSD", "USDJPY", "DSHBTC", "DSHUSD", "BCHUSD", "BTCEUR", "BTCUSD",
-    "BTCJPY", "LTCBTC", "LTCEUR", "LTCJPY", "LTCUSD", "ETHEUR", "ETHJPY", "ETHUSD", "XRPEUR", "XRPUSD"))
-
-  final val icmarkets = BrokerConfig("localhost", 6004, Seq("BCHUSD", "BTCUSD", "DSHUSD", "ETHUSD", "LTCUSD"))
-
-  def getByBrokerName(brokerId: String) = values find {
-    _.toString().equalsIgnoreCase(brokerId)
+        logger.info(s"Adding ${brokerConfig.name} to available brokers")
+        confs :+= brokerConfig
+      }
+    }
   }
+
+  def getBrokerByName(name: String) = confs.find(_.name.equals(name))
 }

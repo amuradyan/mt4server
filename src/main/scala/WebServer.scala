@@ -14,6 +14,7 @@ import akka.stream.scaladsl.{Sink, Source}
 import com.google.gson.Gson
 import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.Logger
+import confs.BrokerConfs
 import models.{Order, TickerData}
 import mt4commands.MT4Commands
 import pdi.jwt.{Jwt, JwtAlgorithm}
@@ -22,6 +23,8 @@ import specs.OrderSpec
 
 import scala.concurrent.Future
 import scala.io.StdIn
+
+import scala.collection.JavaConversions._
 
 trait CsvParameters {
   implicit def csvSeqParamMarshaller: FromStringUnmarshaller[Seq[String]] =
@@ -50,6 +53,9 @@ final object WebServer {
     val keystore_password = conf.getString("keystore_password").toCharArray
     val API_KEY = conf.getString("api_key")
     val secret_key = conf.getString("secret_key")
+    val brokers = conf.getAnyRefList("brokers").asInstanceOf[util.ArrayList[util.HashMap[String, AnyRef]]]
+
+    BrokerConfs.initFrom(brokers)
 
     val ks: KeyStore = KeyStore.getInstance("PKCS12")
 

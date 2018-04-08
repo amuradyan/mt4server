@@ -2,15 +2,16 @@ package mt4commands
 
 import java.io.PrintWriter
 import java.net.Socket
+import java.util
 import java.util.Scanner
 
 import com.typesafe.scalalogging.Logger
-import confs.BrokerConfs
-import confs.BrokerConfs.BrokerConfig
+import confs.{BrokerConfig, BrokerConfs}
 import models.{Order, TickerData}
-import org.slf4j.LoggerFactory
 import resp.RESP
 import specs.OrderSpec
+
+import scala.collection.JavaConversions._
 
 /**
   * Created by spectrum on 3/29/2018.
@@ -26,12 +27,12 @@ final case class MT4Commands(private val brokerId: String) {
 
   private def setupConnection = {
 
-    BrokerConfs.getByBrokerName(brokerId) match {
+    BrokerConfs.getBrokerByName(brokerId) match {
       case Some(brokerConfig: BrokerConfig) => {
         currentBroker = brokerConfig
       }
       case None =>
-        throw new IllegalArgumentException("Unknown broker")
+        throw new IllegalArgumentException(s"Unknown broker: ${brokerId}")
     }
     socket = new Socket(currentBroker.host, currentBroker.port)
     out = new PrintWriter(socket.getOutputStream())
@@ -117,6 +118,27 @@ final case class MT4Commands(private val brokerId: String) {
     placedOrderId
   }
 
+  def getSingleTickerData(ticker: String) = {
+    var tickerData = TickerData.empty
+
+    out.write(RESP.from("ticker " + ticker))
+    out.flush()
+
+    if (in.hasNextLine) {
+      val lineAtHand = in.nextLine
+      if (lineAtHand.startsWith("+")) {
+        tickerData = RESP.toTickerData(lineAtHand)
+        logger.info(lineAtHand)
+      } else {
+        logger.info(s"Invalid response: ${lineAtHand}")
+      }
+    }
+
+    teardown
+
+    tickerData
+  }
+
   def getTickerData(tickers: Seq[String]) = {
     var tickerData = Seq[TickerData]()
 
@@ -133,27 +155,6 @@ final case class MT4Commands(private val brokerId: String) {
           tickerData :+= RESP.toTickerData(lineAtHand)
           logger.info(lineAtHand)
         })
-      }
-    }
-
-    teardown
-
-    tickerData
-  }
-
-  def getSingleTickerData(ticker: String) = {
-    var tickerData = TickerData.empty
-
-    out.write(RESP.from("ticker " + ticker))
-    out.flush()
-
-    if (in.hasNextLine) {
-      val lineAtHand = in.nextLine
-      if (lineAtHand.startsWith("+")) {
-        tickerData = RESP.toTickerData(lineAtHand)
-        logger.info(lineAtHand)
-      } else {
-        logger.info(s"Invalid response: ${lineAtHand}")
       }
     }
 
