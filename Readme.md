@@ -138,3 +138,7 @@ NEOUSD, ETHUSD, DSHUSD, XRPUSD, BCHUSD, BTGUSD, XMRUSD, ZECUSD ]
 - **Just2Trade** - [ XRPUSD*, BTCUSD, ETHUSD]
 
 **Note:** the '*'-ed tickers are supported by the broker, it is possible to obtain their ticks however the broker disabled the trading for these tickers
+
+## Build and deploy
+
+> ./gradlew clean shadowJar
