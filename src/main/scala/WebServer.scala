@@ -1,8 +1,8 @@
-import java.io.InputStream
+import java.io.{File, InputStream}
 import java.security.{KeyStore, SecureRandom}
 import java.util
-import javax.net.ssl.{KeyManagerFactory, SSLContext, TrustManagerFactory}
 
+import javax.net.ssl.{KeyManagerFactory, SSLContext, TrustManagerFactory}
 import akka.actor.ActorSystem
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.model.ws.TextMessage
@@ -24,8 +24,6 @@ import specs.OrderSpec
 import scala.concurrent.Future
 import scala.io.StdIn
 
-import scala.collection.JavaConversions._
-
 trait CsvParameters {
   implicit def csvSeqParamMarshaller: FromStringUnmarshaller[Seq[String]] =
     Unmarshaller(ex => s => Future.successful(s.split(",")))
@@ -41,14 +39,13 @@ final object CsvParameters extends CsvParameters
   */
 class WebServer
 final object WebServer {
-  val logger = Logger[WebServer]
+  private val logger = Logger[WebServer]
+  private val conf = ConfigFactory.load()
 
   def main(args: Array[String]) {
     implicit val actorSystem = ActorSystem("MT4Server")
     implicit val materializer = ActorMaterializer()
     implicit val executionCtx = actorSystem.dispatcher
-
-    val conf = ConfigFactory.load()
 
     val keystore_password = conf.getString("keystore_password").toCharArray
     val API_KEY = conf.getString("api_key")
@@ -85,7 +82,7 @@ final object WebServer {
             { apiKey =>
               {
                 logger.info("Commencing login")
-                if (apiKey.equals(API_KEY)) {
+                if (apiKey.replaceAll("\"", "").equals(API_KEY)) {
                   val token = Jwt.encode(apiKey, secret_key, JwtAlgorithm.HS512)
                   complete(token)
                 } else
@@ -96,8 +93,12 @@ final object WebServer {
         }
       } ~
       authorize(rc => {
-        val header = rc.request.getHeader("Authorization");
-        if(header.isPresent) Jwt.isValid(header.get().value(), secret_key, Seq(JwtAlgorithm.HS512)) else false
+        val header = rc.request.getHeader("Authorization")
+
+        if(header.isPresent)
+          Jwt.isValid(header.get().value(), secret_key, Seq(JwtAlgorithm.HS512))
+        else
+          false
       }) {
         pathPrefix("exchanges") {
           pathPrefix(Segment) {
