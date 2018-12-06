@@ -1,8 +1,7 @@
-import java.io.{File, InputStream}
+import java.io.InputStream
 import java.security.{KeyStore, SecureRandom}
 import java.util
 
-import javax.net.ssl.{KeyManagerFactory, SSLContext, TrustManagerFactory}
 import akka.actor.ActorSystem
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.model.ws.TextMessage
@@ -15,6 +14,7 @@ import com.google.gson.Gson
 import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.Logger
 import confs.BrokerConfs
+import javax.net.ssl.{KeyManagerFactory, SSLContext, TrustManagerFactory}
 import models.{Order, TickerData}
 import mt4commands.MT4Commands
 import pdi.jwt.{Jwt, JwtAlgorithm}
@@ -26,10 +26,10 @@ import scala.io.StdIn
 
 trait CsvParameters {
   implicit def csvSeqParamMarshaller: FromStringUnmarshaller[Seq[String]] =
-    Unmarshaller(ex => s => Future.successful(s.split(",")))
+    Unmarshaller(_ => s => Future.successful(s.split(",")))
 
   implicit def csvListParamMarshaller: FromStringUnmarshaller[List[String]] =
-    Unmarshaller(ex => s => Future.successful(s.split(",").toList))
+    Unmarshaller(_ => s => Future.successful(s.split(",").toList))
 }
 
 final object CsvParameters extends CsvParameters
@@ -195,9 +195,11 @@ final object WebServer {
       }
     }
 
-    val bindingFuture = Http().bindAndHandle(route, "0.0.0.0", 443, connectionContext = https)
+    val host = "0.0.0.0"
+    val port = 8888
+    val bindingFuture = Http().bindAndHandle(route, host, port /*, connectionContext = https*/)
 
-    logger.info(s"Server online at http://0.0.0.0:443/\nPress RETURN to stop...")
+    logger.info(s"Server online at http://$host:$port/\nPress RETURN to stop...")
     StdIn.readLine
 
     keystore.close

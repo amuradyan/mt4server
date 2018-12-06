@@ -2,7 +2,6 @@ package mt4commands
 
 import java.io.PrintWriter
 import java.net.Socket
-import java.util
 import java.util.Scanner
 
 import com.typesafe.scalalogging.Logger
@@ -11,7 +10,7 @@ import models.{Order, TickerData}
 import resp.RESP
 import specs.OrderSpec
 
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 
 /**
   * Created by spectrum on 3/29/2018.
@@ -163,5 +162,5 @@ final case class MT4Commands(private val brokerId: String) {
     tickerData
   }
 
-  def getTickerData: Seq[TickerData] =  getTickerData(currentBroker.tickers)
+  def getTickerData: Seq[TickerData] =  getTickerData(currentBroker.tickers asScala)
 }

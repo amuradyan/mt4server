@@ -141,4 +141,23 @@ NEOUSD, ETHUSD, DSHUSD, XRPUSD, BCHUSD, BTGUSD, XMRUSD, ZECUSD ]
 
 ## Build and deploy
 
+### Build
+
 > ./gradlew clean shadowJar
+
+### Deploy
+
+#### Dependencies
+
+- Java 8
+- bcprov-jdk15on.jar
+- bcpkix-jdk15on.jar
+
+`bcprov-jdk15on.jar` and `bcpkix-jdk15on.jar` are dependencies provided by [The Legion of the Bouncy Castle](https://www.bouncycastle.org/) which are signed.
+After being packed into a fat jar, the signature 'wears off' and the JVM won't run the jar. To fix this like so:
+
+1. Edit `JAVA_HOME\jre\lib\security\java.security` and add `security.provider.<n>=org.bouncycastle.jce.provider.BouncyCastleProvider` to the list of security list
+2. Copy `bcprov-jdk15on.jar` and `bcpkix-jdk15on.jar` to `JAVA_HOME\jre\lib\ext`
+
+After this we can start the server by saying
+> java -jar build/libs/mt4server-1.0-all.jar -Dconfig.file=/path/to/server.config
