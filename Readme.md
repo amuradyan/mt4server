@@ -15,8 +15,8 @@ It uses API key for authentication and JWT.
 
 In the cURLs below youll see placeholders like \<this\>. These are describes below
 
-\<mt4server\> - is at **52.164.255.82**  
-\<API key\> - is **280EC427-5184-4AB4-8A12-EF4140057437**  
+\<mt4server\> - is the IP of the MT4 server  
+\<API key\> - is the API key issued for each setup (should be secret)
 \<broker id\> - is the name by which MT4Server recongnises the broker. Currently the names are [fxclub, fxopen, ava, icmarkets, demo]  
 \<JWT access token\> - is the access token you receive as a response from [Auth](#auth) endpoint  
 \<order_id\> - is an ID of an existing order. All orders can be listed by calling the [Fetching all orders](#fetching-all-orders) endpoint
